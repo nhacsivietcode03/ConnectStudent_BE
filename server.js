@@ -2,10 +2,9 @@ const express = require('express')
 const server = express()
 const morgan = require('morgan')
 const connectDb = require('./config/db')
+const { userRouter } = require('./routers/user')
 
 require('dotenv').config()
-
-
 //  Dùng để chuyển đổi body từ request sang req.body
 server.use(express.json())
 server.use(morgan('dev'))
@@ -14,6 +13,7 @@ server.get('/', async (req, res) => {
     res.status(200).json({ message: "Welcome tExpresssss" })
 })
 
+server.use('/api/users',userRouter)
 
 
 server.use((req, res, next) => {
