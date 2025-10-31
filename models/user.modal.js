@@ -7,9 +7,23 @@ const userSchema = new mongoose.Schema({
     role: String,
     major: String,
     avatar: String,
-    bio: String
-})
+    bio: String,
+    follow: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }
+    ],
+    befollowed: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    Clb: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Clb"
+    }]
+},{timestamps: true})
 
-const User = mongoose.model('User',userSchema)
+const User = mongoose.model('User', userSchema)
 
 module.exports = User
