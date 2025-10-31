@@ -1,19 +1,22 @@
 const express = require('express')
+const cors = require('cors')
 const server = express()
 const morgan = require('morgan')
 const connectDb = require('./config/db')
-const { userRouter } = require('./routers/user')
 
 require('dotenv').config()
 //  Dùng để chuyển đổi body từ request sang req.body
+server.use(cors())
 server.use(express.json())
 server.use(morgan('dev'))
 
 server.get('/', async (req, res) => {
-    res.status(200).json({ message: "Welcome tExpresssss" })
+    res.status(200).json({ message: "Welcome to Backend of ConnectStudent" })
 })
 
-server.use('/api/users',userRouter)
+const routes = require("./routes")
+server.use('/api/users', routes.userRouter)
+server.use('/api/auth', routes.authRouter)
 
 
 server.use((req, res, next) => {
@@ -43,10 +46,9 @@ server.use(async (err, req, resp, next) => {
     }
 });
 
-const PORT = process.env.PORT || 8080
-const HOST = process.env.HOST
+const PORT = process.env.PORT || 9999
+const HOST = process.env.HOST 
 server.listen(PORT, HOST, () => {
     console.log(`Server is running at http://${HOST}:${PORT}`);
-
     connectDb()
 })
