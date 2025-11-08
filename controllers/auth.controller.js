@@ -98,7 +98,7 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    const { username, email, password, role, major, avatar, bio, otpCode, otpToken } = req.body;
+    const { username, email, password, major, avatar, bio, otpCode, otpToken } = req.body;
 
     if (!otpCode || !otpToken) {
       return res.status(400).json({
@@ -109,6 +109,9 @@ const register = async (req, res) => {
 
     // Verify OTP from JWT Token
     try {
+      console.log("otpToken:", otpToken);
+      console.log("secret:", process.env.JWT_SECRET);
+      
       const decoded = jwt.verify(otpToken, process.env.JWT_SECRET || "your-secret-key");
 
       // Check token type
@@ -167,7 +170,7 @@ const register = async (req, res) => {
         username,
         email,
         password: hashed,
-        role,
+        role: 'user',
         major,
         avatar,
         bio
