@@ -170,7 +170,7 @@ const register = async (req, res) => {
         username,
         email,
         password: hashed,
-        role: 'user',
+        role: 'student',
         major,
         avatar,
         bio
