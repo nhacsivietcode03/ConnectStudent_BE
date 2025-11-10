@@ -8,5 +8,4 @@ router.use(authMiddleware);
 router.get('/getUser', UserController.getUser)
 router.put('/profile', UserController.updateProfile)
 router.post('/upload-avatar', uploadAvatar.single('avatar'), UserController.uploadAvatar)
-
-module.exports = router
+module.exports = router;
