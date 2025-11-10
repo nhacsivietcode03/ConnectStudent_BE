@@ -1,9 +1,11 @@
 const express = require('express')
 const cors = require('cors')
+const http = require('http')
 const server = express()
 const morgan = require('morgan')
 const connectDb = require('./config/db')
 const setupSwagger = require('./config/swagger')
+const { initializeSocket } = require('./config/socket')
 
 require('dotenv').config()
 //  Dùng để chuyển đổi body từ request sang req.body
@@ -22,6 +24,8 @@ server.get('/', async (req, res) => {
 const routes = require("./routes")
 server.use('/api/users', routes.userRouter)
 server.use('/api/auth', routes.authRouter)
+server.use('/api/posts', routes.postRouter)
+server.use('/api/notifications', routes.notificationRouter)
 
 setupSwagger(server);
 
@@ -55,7 +59,15 @@ server.use(async (err, req, resp, next) => {
 
 const PORT = process.env.PORT || 9999
 const HOST = process.env.HOST
-server.listen(PORT, HOST, () => {
+
+// Create HTTP server for Socket.IO
+const httpServer = http.createServer(server)
+
+// Initialize Socket.IO
+initializeSocket(httpServer)
+
+httpServer.listen(PORT, HOST, () => {
     console.log(`Server is running at http://${HOST}:${PORT}`);
+    console.log(`Socket.IO server initialized`);
     connectDb()
 })
