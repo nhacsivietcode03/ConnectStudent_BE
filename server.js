@@ -22,6 +22,7 @@ server.get('/', async (req, res) => {
 const routes = require("./routes")
 server.use('/api/users', routes.userRouter)
 server.use('/api/auth', routes.authRouter)
+server.use('/api/admin', routes.adminRouter)
 
 setupSwagger(server);
 
