@@ -6,14 +6,14 @@ const storage = new CloudinaryStorage({
 	cloudinary,
 	params: async (req, file) => {
 		return {
-			folder: 'connectstudent/posts',
-			resource_type: 'auto'
+			folder: 'connectstudent/avatars',
+			resource_type: 'image'
 		}
 	}
 })
 
-const upload = multer({ storage })
+const uploadAvatar = multer({ storage })
 
-module.exports = upload
+module.exports = uploadAvatar
 
 
