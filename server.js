@@ -27,6 +27,7 @@ server.use('/api/auth', routes.authRouter)
 server.use('/api/posts', routes.postRouter)
 server.use('/api/notifications', routes.notificationRouter)
 server.use('/api/admin', routes.adminRouter)
+server.use('/api/follow', routes.followRouter)
 
 setupSwagger(server);
 

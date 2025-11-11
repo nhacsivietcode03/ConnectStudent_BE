@@ -68,6 +68,45 @@ module.exports = {
 		}
 	},
 
+	updateComment: async (req, res, next) => {
+		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been banned. You can only view content."
+				});
+			}
+
+			const { postId, commentId } = req.params
+			const { content } = req.body
+
+			if (!content || !content.trim()) {
+				return res.status(400).json({ message: 'Content is required' })
+			}
+
+			const comment = await Comment.findById(commentId)
+			if (!comment || comment.post.toString() !== postId) {
+				return res.status(404).json({ message: 'Comment not found' })
+			}
+
+			// Only author can edit their comment
+			if (comment.author.toString() !== req.user._id.toString()) {
+				return res.status(403).json({ message: 'Forbidden' })
+			}
+
+			comment.content = content
+			await comment.save()
+
+			const populated = await populateComment(Comment.findById(comment._id))
+			const result = await populated
+			res.json(result)
+		} catch (err) {
+			next(err)
+		}
+	},
+
 	getComments: async (req, res, next) => {
 		try {
 			const { postId } = req.params

@@ -3,11 +3,13 @@ const authRouter = require('./auth.router')
 const postRouter = require('./post.router')
 const notificationRouter = require('./notification.router')
 const adminRouter = require('./admin.router')
+const followRouter = require('./follow.router')
 
 module.exports = {
     userRouter,
 	authRouter,
 	postRouter,
 	notificationRouter,
-	adminRouter
+	adminRouter,
+	followRouter
 }
