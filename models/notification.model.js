@@ -1,17 +1,40 @@
 const mongoose = require('mongoose')
 
-const followSchema = new mongoose.Schema({
-    sender: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-    },
-    receiver:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-    },
-    status: String
-},{timestamps: true})
+const notificationSchema = new mongoose.Schema({
+	recipient: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'User',
+		required: true
+	},
+	sender: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'User',
+		required: true
+	},
+	type: {
+		type: String,
+		enum: ['like', 'comment', 'follow_request', 'follow_accept', 'follow_reject'],
+		required: true
+	},
+	post: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'Post',
+		required: false
+	},
+	comment: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'Comment'
+	},
+	followRequest: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: 'Follow'
+	},
+	read: {
+		type: Boolean,
+		default: false
+	}
+}, { timestamps: true })
 
-const Follow = mongoose.model('Follow', followSchema)
+const Notification = mongoose.model('Notification', notificationSchema)
 
-module.exports = Follow
+module.exports = Notification

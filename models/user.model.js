@@ -8,6 +8,12 @@ const userSchema = new mongoose.Schema({
     major: String,
     avatar: String,
     bio: String,
+    isBanned: {
+        type: Boolean,
+        default: false
+    },
+    bannedAt: Date,
+    bannedReason: String,
     follow: [
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -22,7 +28,7 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Clb"
     }]
-},{timestamps: true})
+}, { timestamps: true })
 
 const User = mongoose.model('User', userSchema)
 

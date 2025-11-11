@@ -1,48 +1,48 @@
-const express = require("express");
-const cors = require("cors");
-const { createServer } = require("http");
-const { Server } = require("socket.io");
-const server = express();
-const morgan = require("morgan");
-const connectDb = require("./config/db");
-const setupSwagger = require("./config/swagger");
-const setupSocket = require("./config/socket");
+const express = require('express')
+const cors = require('cors')
+const http = require('http')
+const server = express()
+const morgan = require('morgan')
+const connectDb = require('./config/db')
+const setupSwagger = require('./config/swagger')
+const { initializeSocket } = require('./config/socket')
 
-require("dotenv").config();
+require('dotenv').config()
 //  Dùng để chuyển đổi body từ request sang req.body
-server.use(cors());
-server.use(express.json());
-server.use(morgan("dev"));
-server.use(
-    cors({
-        origin: "*", // hoặc chỉ định domain cụ thể nếu deploy (VD: "https://uniconnect.vn")
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-    })
-);
-server.get("/", async (req, res) => {
-    res.status(200).json({ message: "Welcome to Backend of ConnectStudent" });
-});
+server.use(cors())
+server.use(express.json())
+server.use(morgan('dev'))
+server.use(cors({
+    origin: '*', // hoặc chỉ định domain cụ thể nếu deploy (VD: "https://uniconnect.vn")
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+server.get('/', async (req, res) => {
+    res.status(200).json({ message: "Welcome to Backend of ConnectStudent" })
+})
 
-const routes = require("./routes");
-server.use("/api/users", routes.userRouter);
-server.use("/api/auth", routes.authRouter);
-server.use("/api/chat", routes.chatRouter);
+const routes = require("./routes")
+server.use('/api/users', routes.userRouter)
+server.use('/api/auth', routes.authRouter)
+server.use('/api/posts', routes.postRouter)
+server.use('/api/notifications', routes.notificationRouter)
+server.use('/api/admin', routes.adminRouter)
+server.use('/api/follow', routes.followRouter)
 
 setupSwagger(server);
 
 server.use((req, res, next) => {
-    res.status(404).json({ message: "Ko ton tai Router" });
-});
+    res.status(404).json({ message: "Ko ton tai Router" })
+})
 
 server.use(async (err, req, resp, next) => {
     // Kiểm tra nếu có lỗi validation
-    if (err.name === "ValidationError") {
+    if (err.name === 'ValidationError') {
         // Khởi tạo đối tượng lỗi chứa thông báo
         let errorResponse = {
             //error: true,
-            message: "Data model validation failed",
-            errors: {},
+            message: 'Data model validation failed',
+            errors: {}
         };
         // Duyệt qua các lỗi trong err.errors
         for (let field in err.errors) {
@@ -57,24 +57,19 @@ server.use(async (err, req, resp, next) => {
     }
 });
 
-const PORT = process.env.PORT || 9999;
-const HOST = process.env.HOST;
 
-// Create HTTP server
-const httpServer = createServer(server);
 
-// Setup Socket.IO
-const io = new Server(httpServer, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"],
-        credentials: true,
-    },
-});
+const PORT = process.env.PORT || 9999
+const HOST = process.env.HOST
 
-setupSocket(io);
+// Create HTTP server for Socket.IO
+const httpServer = http.createServer(server)
+
+// Initialize Socket.IO
+initializeSocket(httpServer)
 
 httpServer.listen(PORT, HOST, () => {
     console.log(`Server is running at http://${HOST}:${PORT}`);
-    connectDb();
-});
+    console.log(`Socket.IO server initialized`);
+    connectDb()
+})
