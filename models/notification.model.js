@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
 const notificationSchema = new mongoose.Schema({
 	recipient: {
@@ -39,6 +39,6 @@ const notificationSchema = new mongoose.Schema({
 	}
 }, { timestamps: true })
 
-const Notification = mongoose.model('Notification', notificationSchema)
+const Notification = mongoose.model("Notification", notificationSchema);
 
-module.exports = Notification
+module.exports = Notification;
