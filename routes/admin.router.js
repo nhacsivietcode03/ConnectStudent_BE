@@ -153,5 +153,88 @@ router.put('/users/:id', AdminController.updateUser);
  */
 router.delete('/users/:id', AdminController.deleteUser);
 
+/**
+ * @swagger
+ * /admin/users/{id}/ban:
+ *   post:
+ *     summary: Ban user
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User banned successfully
+ */
+router.post('/users/:id/ban', AdminController.banUser);
+
+/**
+ * @swagger
+ * /admin/users/{id}/unban:
+ *   post:
+ *     summary: Unban user
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User unbanned successfully
+ */
+router.post('/users/:id/unban', AdminController.unbanUser);
+
+/**
+ * @swagger
+ * /admin/stats:
+ *   get:
+ *     summary: Get dashboard statistics
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ */
+router.get('/stats', AdminController.getDashboardStats);
+
+/**
+ * @swagger
+ * /admin/users/export:
+ *   get:
+ *     summary: Export users to CSV/JSON
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [csv, json]
+ *         description: Export format
+ *     responses:
+ *       200:
+ *         description: Users exported successfully
+ */
+router.get('/users/export', AdminController.exportUsers);
+
 module.exports = router;
 

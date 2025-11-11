@@ -2,6 +2,7 @@ const cloudinary = require('../config/cloudinary')
 const Post = require('../models/post.model')
 const Comment = require('../models/comment.model')
 const Notification = require('../models/notification.model')
+const User = require('../models/user.model')
 const { getIO } = require('../config/socket')
 
 const mapFiles = (files = []) => {
@@ -30,6 +31,15 @@ const populatePost = async (query) => {
 module.exports = {
 	createPost: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been banned. You can only view content."
+				});
+			}
+
 			const author = req.user._id
 			const { content } = req.body
 			const media = mapFiles(req.files)
@@ -69,6 +79,15 @@ module.exports = {
 
 	updatePost: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been banned. You can only view content."
+				});
+			}
+
 			const { id } = req.params
 			const post = await Post.findById(id)
 			if (!post) return res.status(404).json({ message: 'Post not found' })
@@ -113,6 +132,15 @@ module.exports = {
 
 	deletePost: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been banned. You can only view content."
+				});
+			}
+
 			const { id } = req.params
 			const post = await Post.findById(id)
 			if (!post) return res.status(404).json({ message: 'Post not found' })
@@ -139,6 +167,15 @@ module.exports = {
 
 	toggleLike: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been banned. You can only view content."
+				});
+			}
+
 			const { id } = req.params
 			const userId = req.user._id
 			const post = await Post.findById(id)
@@ -154,7 +191,7 @@ module.exports = {
 			} else {
 				// Like: add user to likes array
 				post.likes.push(userId)
-				
+
 				// Create notification if user is not the post owner
 				if (post.author.toString() !== userId.toString()) {
 					const notification = await Notification.create({
@@ -163,12 +200,12 @@ module.exports = {
 						type: 'like',
 						post: id
 					})
-					
+
 					// Populate and emit notification via socket
 					const populatedNotification = await Notification.findById(notification._id)
 						.populate('sender', 'username avatar email')
 						.populate('post', 'content')
-					
+
 					const io = getIO()
 					io.to(`user:${post.author.toString()}`).emit('new-notification', populatedNotification)
 					io.to(`user:${post.author.toString()}`).emit('unread-count-update')

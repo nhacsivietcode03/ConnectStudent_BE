@@ -1,6 +1,7 @@
 const Comment = require('../models/comment.model')
 const Post = require('../models/post.model')
 const Notification = require('../models/notification.model')
+const User = require('../models/user.model')
 const { getIO } = require('../config/socket')
 
 const populateComment = async (query) => {
@@ -10,6 +11,15 @@ const populateComment = async (query) => {
 module.exports = {
 	createComment: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been banned. You can only view content."
+				});
+			}
+
 			const { postId } = req.params
 			const { content } = req.body
 
@@ -38,13 +48,13 @@ module.exports = {
 					post: postId,
 					comment: comment._id
 				})
-				
+
 				// Populate and emit notification via socket
 				const populatedNotification = await Notification.findById(notification._id)
 					.populate('sender', 'username avatar email')
 					.populate('post', 'content')
 					.populate('comment', 'content')
-				
+
 				const io = getIO()
 				io.to(`user:${post.author.toString()}`).emit('new-notification', populatedNotification)
 				io.to(`user:${post.author.toString()}`).emit('unread-count-update')
@@ -76,6 +86,15 @@ module.exports = {
 
 	deleteComment: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been banned. You can only view content."
+				});
+			}
+
 			const { postId, commentId } = req.params
 			const comment = await Comment.findById(commentId)
 			if (!comment || comment.post.toString() !== postId) {

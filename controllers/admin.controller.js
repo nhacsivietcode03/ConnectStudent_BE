@@ -1,4 +1,9 @@
 const User = require("../models/user.model");
+const Post = require("../models/post.model");
+const Comment = require("../models/comment.model");
+const Notification = require("../models/notification.model");
+const Follow = require("../models/follow.model");
+const cloudinary = require("../config/cloudinary");
 const bcrypt = require("bcryptjs");
 
 // Create new user (admin can create without OTP)
@@ -131,34 +136,39 @@ const getAllUsers = async (req, res) => {
     }
 };
 
-// Update user
+// Update user (admin can only update role)
 const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { username, email, role, major, avatar, bio, password } = req.body;
+        const { role } = req.body;
 
         const user = await User.findById(id);
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
 
-        // Update fields
-        if (username !== undefined) user.username = username;
-        if (email !== undefined) user.email = email;
-        if (role !== undefined) user.role = role;
-        if (major !== undefined) user.major = major;
-        if (avatar !== undefined) user.avatar = avatar;
-        if (bio !== undefined) user.bio = bio;
+        // Prevent admin from editing their own role
+        if (req.user._id.toString() === id && role !== undefined && role !== user.role) {
+            return res.status(400).json({
+                success: false,
+                message: "You cannot edit your own role"
+            });
+        }
 
-        // Update password if provided
-        if (password) {
-            if (password.length < 6) {
+        // Only allow role update
+        if (role !== undefined) {
+            if (role !== "student" && role !== "admin") {
                 return res.status(400).json({
                     success: false,
-                    message: "Password must be at least 6 characters"
+                    message: "Invalid role. Role must be 'student' or 'admin'"
                 });
             }
-            user.password = await bcrypt.hash(password, 10);
+            user.role = role;
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: "Role is required"
+            });
         }
 
         await user.save();
@@ -199,14 +209,83 @@ const deleteUser = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found" });
         }
 
-        // Prevent deleting other admins
-        if (user.role === 'admin') {
-            return res.status(403).json({
-                success: false,
-                message: "Cannot delete admin accounts"
-            });
+        // Find all posts by this user
+        const userPosts = await Post.find({ author: id });
+
+        // Delete all media files from cloudinary and comments for each post
+        for (const post of userPosts) {
+            // Delete media files from cloudinary
+            for (const media of post.media) {
+                if (media.publicId) {
+                    try {
+                        await cloudinary.uploader.destroy(media.publicId, {
+                            resource_type: media.resourceType === 'video' ? 'video' : 'image'
+                        });
+                    } catch (cloudinaryError) {
+                        console.error(`Error deleting media ${media.publicId}:`, cloudinaryError);
+                    }
+                }
+            }
+
+            // Delete all comments in this post
+            if (post.comments && post.comments.length > 0) {
+                await Comment.deleteMany({ _id: { $in: post.comments } });
+            }
         }
 
+        // Delete all posts by this user
+        await Post.deleteMany({ author: id });
+
+        // Find all comments by this user (in other users' posts)
+        const userComments = await Comment.find({ author: id });
+        const commentIds = userComments.map(c => c._id);
+
+        // Remove these comments from posts' comments arrays
+        if (commentIds.length > 0) {
+            for (const commentId of commentIds) {
+                await Post.updateMany(
+                    { comments: commentId },
+                    { $pull: { comments: commentId } }
+                );
+            }
+        }
+
+        // Delete all comments by this user
+        await Comment.deleteMany({ author: id });
+
+        // Delete all notifications where user is sender or recipient
+        await Notification.deleteMany({
+            $or: [
+                { sender: id },
+                { recipient: id }
+            ]
+        });
+
+        // Delete all follow relationships involving this user
+        await Follow.deleteMany({
+            $or: [
+                { sender: id },
+                { receiver: id }
+            ]
+        });
+
+        // Remove user from other users' follow/befollowed arrays
+        await User.updateMany(
+            { follow: id },
+            { $pull: { follow: id } }
+        );
+        await User.updateMany(
+            { befollowed: id },
+            { $pull: { befollowed: id } }
+        );
+
+        // Remove user from posts' likes arrays
+        await Post.updateMany(
+            { likes: id },
+            { $pull: { likes: id } }
+        );
+
+        // Finally, delete the user
         await User.findByIdAndDelete(id);
 
         res.json({
@@ -215,6 +294,173 @@ const deleteUser = async (req, res) => {
         });
     } catch (error) {
         console.error("Delete user error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+};
+
+// Ban/Unban user
+const banUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        if (req.user._id.toString() === id) {
+            return res.status(400).json({
+                success: false,
+                message: "You cannot ban your own account"
+            });
+        }
+
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        await User.findByIdAndUpdate(id, {
+            isBanned: true,
+            bannedAt: new Date(),
+            bannedReason: reason || "Violation of terms"
+        }, { new: true, runValidators: true });
+
+        const updatedUser = await User.findById(id).select("-password");
+
+        res.json({
+            success: true,
+            message: "User banned successfully",
+            data: updatedUser
+        });
+    } catch (error) {
+        console.error("Ban user error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+const unbanUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // Use updateOne to ensure field is set correctly
+        const result = await User.updateOne(
+            { _id: id },
+            {
+                $set: {
+                    isBanned: false,
+                    bannedAt: null,
+                    bannedReason: null
+                }
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const updatedUser = await User.findById(id).select("-password");
+
+        res.json({
+            success: true,
+            message: "User unbanned successfully",
+            data: updatedUser
+        });
+    } catch (error) {
+        console.error("Unban user error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+};
+
+// Get dashboard statistics
+const getDashboardStats = async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments();
+        const totalStudents = await User.countDocuments({ role: "student" });
+        const totalAdmins = await User.countDocuments({ role: "admin" });
+        const bannedUsers = await User.countDocuments({ isBanned: true });
+        const totalPosts = await Post.countDocuments();
+        const totalComments = await Comment.countDocuments();
+        const totalFollows = await Follow.countDocuments();
+
+        // Recent users (last 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const recentUsers = await User.countDocuments({
+            createdAt: { $gte: sevenDaysAgo }
+        });
+
+        // Recent posts (last 7 days)
+        const recentPosts = await Post.countDocuments({
+            createdAt: { $gte: sevenDaysAgo }
+        });
+
+        res.json({
+            success: true,
+            data: {
+                totalUsers,
+                totalStudents,
+                totalAdmins,
+                bannedUsers,
+                totalPosts,
+                totalComments,
+                totalFollows,
+                recentUsers,
+                recentPosts
+            }
+        });
+    } catch (error) {
+        console.error("Get dashboard stats error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// Export users to CSV
+const exportUsers = async (req, res) => {
+    try {
+        const { format = 'csv' } = req.query;
+
+        const users = await User.find()
+            .select("-password")
+            .sort({ createdAt: -1 });
+
+        if (format === 'csv') {
+            // CSV format
+            const csvHeader = 'Username,Email,Role,Major,Created At,Is Banned\n';
+            const csvRows = users.map(user => {
+                const username = (user.username || 'N/A').replace(/,/g, '');
+                const email = (user.email || '').replace(/,/g, '');
+                const role = user.role || 'N/A';
+                const major = (user.major || 'N/A').replace(/,/g, '');
+                const createdAt = new Date(user.createdAt).toLocaleDateString();
+                const isBanned = user.isBanned ? 'Yes' : 'No';
+                return `${username},${email},${role},${major},${createdAt},${isBanned}`;
+            }).join('\n');
+
+            const csv = csvHeader + csvRows;
+
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename=users_${new Date().toISOString().split('T')[0]}.csv`);
+            res.send(csv);
+        } else {
+            // JSON format
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Disposition', `attachment; filename=users_${new Date().toISOString().split('T')[0]}.json`);
+            res.json({
+                success: true,
+                data: users,
+                exportedAt: new Date().toISOString()
+            });
+        }
+    } catch (error) {
+        console.error("Export users error:", error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
@@ -223,6 +469,10 @@ module.exports = {
     createUser,
     getAllUsers,
     updateUser,
-    deleteUser
+    deleteUser,
+    banUser,
+    unbanUser,
+    getDashboardStats,
+    exportUsers
 };
 
