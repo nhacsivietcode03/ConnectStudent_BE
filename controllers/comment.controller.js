@@ -11,15 +11,6 @@ const populateComment = async (query) => {
 module.exports = {
 	createComment: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const { postId } = req.params
 			const { content } = req.body
 
@@ -70,15 +61,6 @@ module.exports = {
 
 	updateComment: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const { postId, commentId } = req.params
 			const { content } = req.body
 
@@ -125,15 +107,6 @@ module.exports = {
 
 	deleteComment: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const { postId, commentId } = req.params
 			const comment = await Comment.findById(commentId)
 			if (!comment || comment.post.toString() !== postId) {

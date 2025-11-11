@@ -12,15 +12,6 @@ const populateFollow = async (query) => {
 module.exports = {
 	sendRequest: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const senderId = req.user._id
 			const { userId: receiverId } = req.params
 
@@ -108,15 +99,6 @@ module.exports = {
 
 	acceptRequest: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const userId = req.user._id
 			const { id } = req.params
 
@@ -159,15 +141,6 @@ module.exports = {
 
 	rejectRequest: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const userId = req.user._id
 			const { id } = req.params
 
@@ -206,15 +179,6 @@ module.exports = {
 
 	unfollow: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const userId = req.user._id
 			const { userId: targetId } = req.params
 
@@ -239,15 +203,6 @@ module.exports = {
 
 	removeFollower: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const userId = req.user._id
 			const { userId: followerId } = req.params
 

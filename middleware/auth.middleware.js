@@ -18,24 +18,12 @@ const authMiddleware = async (req, res, next) => {
             return res.status(403).json({ message: "User not found" });
         }
 
-        // Check if user is banned - only allow GET requests (read-only)
-        // Exception: Allow profile updates and password changes even when banned
+        // Check if user is banned - only allow GET requests (view content)
         if (user.isBanned === true && req.method !== 'GET') {
-            const allowedBannedRoutes = [
-                'profile',
-                'upload-avatar',
-                'change-password'
-            ];
-            const currentPath = (req.path || req.originalUrl || req.url || '').toLowerCase();
-            const isAllowedRoute = allowedBannedRoutes.some(route => currentPath.includes(route));
-
-            // If not an allowed route, block the request
-            if (!isAllowedRoute) {
-                return res.status(403).json({
-                    success: false,
-                    message: "Your account has been restricted. You can only view content."
-                });
-            }
+            return res.status(403).json({
+                success: false,
+                message: "Your account has been restricted. You can only view content."
+            });
         }
 
         req.user = user;

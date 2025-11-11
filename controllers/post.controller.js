@@ -31,15 +31,6 @@ const populatePost = async (query) => {
 module.exports = {
 	createPost: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const author = req.user._id
 			const { content } = req.body
 			const media = mapFiles(req.files)
@@ -79,15 +70,6 @@ module.exports = {
 
 	updatePost: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const { id } = req.params
 			const post = await Post.findById(id)
 			if (!post) return res.status(404).json({ message: 'Post not found' })
@@ -132,15 +114,6 @@ module.exports = {
 
 	deletePost: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const { id } = req.params
 			const post = await Post.findById(id)
 			if (!post) return res.status(404).json({ message: 'Post not found' })
@@ -167,15 +140,6 @@ module.exports = {
 
 	toggleLike: async (req, res, next) => {
 		try {
-			// Check if user is banned
-			const user = await User.findById(req.user._id);
-			if (user && user.isBanned === true) {
-				return res.status(403).json({
-					success: false,
-					message: "Your account has been restricted. You can only view content."
-				});
-			}
-
 			const { id } = req.params
 			const userId = req.user._id
 			const post = await Post.findById(id)
