@@ -36,7 +36,7 @@ module.exports = {
 			if (user && user.isBanned === true) {
 				return res.status(403).json({
 					success: false,
-					message: "Your account has been banned. You can only view content."
+					message: "Your account has been restricted. You can only view content."
 				});
 			}
 
@@ -84,7 +84,7 @@ module.exports = {
 			if (user && user.isBanned === true) {
 				return res.status(403).json({
 					success: false,
-					message: "Your account has been banned. You can only view content."
+					message: "Your account has been restricted. You can only view content."
 				});
 			}
 
@@ -137,7 +137,7 @@ module.exports = {
 			if (user && user.isBanned === true) {
 				return res.status(403).json({
 					success: false,
-					message: "Your account has been banned. You can only view content."
+					message: "Your account has been restricted. You can only view content."
 				});
 			}
 
@@ -172,7 +172,7 @@ module.exports = {
 			if (user && user.isBanned === true) {
 				return res.status(403).json({
 					success: false,
-					message: "Your account has been banned. You can only view content."
+					message: "Your account has been restricted. You can only view content."
 				});
 			}
 

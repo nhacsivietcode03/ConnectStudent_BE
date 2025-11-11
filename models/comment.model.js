@@ -1,16 +1,16 @@
 const mongoose = require('mongoose')
 
 const commentSchema = new mongoose.Schema({
-    post:{
+    post: {
         type: mongoose.Schema.Types.ObjectId,
-        ref:"Post"
+        ref: "Post"
     },
-    author:{
+    author: {
         type: mongoose.Schema.Types.ObjectId,
-        ref:"User"
+        ref: "User"
     },
     content: String
-},{timestamps: true})
+}, { timestamps: true })
 
 const Comment = mongoose.model('Comment', commentSchema)
 

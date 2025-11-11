@@ -12,11 +12,20 @@ const populateFollow = async (query) => {
 module.exports = {
 	sendRequest: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been restricted. You can only view content."
+				});
+			}
+
 			const senderId = req.user._id
 			const { userId: receiverId } = req.params
 
 			if (senderId.toString() === receiverId) {
-				return res.status(400).json({ message: 'Không thể theo dõi chính mình' })
+				return res.status(400).json({ message: 'Cannot follow yourself' })
 			}
 
 			const existing = await Follow.findOne({
@@ -25,7 +34,7 @@ module.exports = {
 				status: { $in: ['pending', 'accepted'] }
 			})
 			if (existing) {
-				return res.status(400).json({ message: 'Đã gửi yêu cầu hoặc đang theo dõi' })
+				return res.status(400).json({ message: 'Request already sent or already following' })
 			}
 
 			const request = await Follow.create({
@@ -99,16 +108,25 @@ module.exports = {
 
 	acceptRequest: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been restricted. You can only view content."
+				});
+			}
+
 			const userId = req.user._id
 			const { id } = req.params
 
 			const request = await Follow.findById(id)
-			if (!request) return res.status(404).json({ message: 'Yêu cầu không tồn tại' })
+			if (!request) return res.status(404).json({ message: 'Request not found' })
 			if (request.receiver.toString() !== userId.toString()) {
-				return res.status(403).json({ message: 'Không có quyền' })
+				return res.status(403).json({ message: 'Forbidden' })
 			}
 			if (request.status !== 'pending') {
-				return res.status(400).json({ message: 'Yêu cầu đã được xử lý' })
+				return res.status(400).json({ message: 'Request already processed' })
 			}
 
 			request.status = 'accepted'
@@ -141,16 +159,25 @@ module.exports = {
 
 	rejectRequest: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been restricted. You can only view content."
+				});
+			}
+
 			const userId = req.user._id
 			const { id } = req.params
 
 			const request = await Follow.findById(id)
-			if (!request) return res.status(404).json({ message: 'Yêu cầu không tồn tại' })
+			if (!request) return res.status(404).json({ message: 'Request not found' })
 			if (request.receiver.toString() !== userId.toString()) {
-				return res.status(403).json({ message: 'Không có quyền' })
+				return res.status(403).json({ message: 'Forbidden' })
 			}
 			if (request.status !== 'pending') {
-				return res.status(400).json({ message: 'Yêu cầu đã được xử lý' })
+				return res.status(400).json({ message: 'Request already processed' })
 			}
 
 			request.status = 'rejected'
@@ -179,6 +206,15 @@ module.exports = {
 
 	unfollow: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been restricted. You can only view content."
+				});
+			}
+
 			const userId = req.user._id
 			const { userId: targetId } = req.params
 
@@ -188,7 +224,7 @@ module.exports = {
 				status: 'accepted'
 			})
 			if (!relation) {
-				return res.status(404).json({ message: 'Không tìm thấy mối quan hệ theo dõi' })
+				return res.status(404).json({ message: 'Follow relationship not found' })
 			}
 
 			await Follow.deleteOne({ _id: relation._id })
@@ -203,6 +239,15 @@ module.exports = {
 
 	removeFollower: async (req, res, next) => {
 		try {
+			// Check if user is banned
+			const user = await User.findById(req.user._id);
+			if (user && user.isBanned === true) {
+				return res.status(403).json({
+					success: false,
+					message: "Your account has been restricted. You can only view content."
+				});
+			}
+
 			const userId = req.user._id
 			const { userId: followerId } = req.params
 
@@ -212,7 +257,7 @@ module.exports = {
 				status: 'accepted'
 			})
 			if (!relation) {
-				return res.status(404).json({ message: 'Người này không theo dõi bạn' })
+				return res.status(404).json({ message: 'This user is not following you' })
 			}
 
 			await Follow.deleteOne({ _id: relation._id })

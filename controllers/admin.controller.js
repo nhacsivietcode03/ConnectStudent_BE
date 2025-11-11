@@ -5,6 +5,7 @@ const Notification = require("../models/notification.model");
 const Follow = require("../models/follow.model");
 const cloudinary = require("../config/cloudinary");
 const bcrypt = require("bcryptjs");
+const { getIO } = require("../config/socket");
 
 // Create new user (admin can create without OTP)
 const createUser = async (req, res) => {
@@ -163,22 +164,45 @@ const updateUser = async (req, res) => {
                     message: "Invalid role. Role must be 'student' or 'admin'"
                 });
             }
+            const oldRole = user.role;
             user.role = role;
+            await user.save();
+
+            const updatedUser = await User.findById(id).select("-password");
+
+            // Create notification if role changed
+            if (oldRole !== role) {
+                const notification = await Notification.create({
+                    recipient: id,
+                    sender: req.user._id,
+                    type: 'role_updated',
+                    read: false,
+                    metadata: {
+                        oldRole: oldRole,
+                        newRole: role
+                    }
+                });
+
+                // Populate and emit notification via socket
+                const populatedNotification = await Notification.findById(notification._id)
+                    .populate('sender', 'username avatar email');
+
+                const io = getIO();
+                io.to(`user:${id}`).emit('new-notification', populatedNotification);
+                io.to(`user:${id}`).emit('unread-count-update');
+            }
+
+            res.json({
+                success: true,
+                message: "User updated successfully",
+                data: updatedUser
+            });
         } else {
             return res.status(400).json({
                 success: false,
                 message: "Role is required"
             });
         }
-
-        await user.save();
-
-        const updatedUser = await User.findById(id).select("-password");
-        res.json({
-            success: true,
-            message: "User updated successfully",
-            data: updatedUser
-        });
     } catch (error) {
         console.error("Update user error:", error);
         if (error.code === 11000) {
@@ -327,6 +351,25 @@ const banUser = async (req, res) => {
 
         const updatedUser = await User.findById(id).select("-password");
 
+        // Create notification for banned user
+        const notification = await Notification.create({
+            recipient: id,
+            sender: req.user._id,
+            type: 'banned',
+            read: false,
+            metadata: {
+                reason: reason || "Violation of terms"
+            }
+        });
+
+        // Populate and emit notification via socket
+        const populatedNotification = await Notification.findById(notification._id)
+            .populate('sender', 'username avatar email');
+
+        const io = getIO();
+        io.to(`user:${id}`).emit('new-notification', populatedNotification);
+        io.to(`user:${id}`).emit('unread-count-update');
+
         res.json({
             success: true,
             message: "User banned successfully",
@@ -364,6 +407,22 @@ const unbanUser = async (req, res) => {
         }
 
         const updatedUser = await User.findById(id).select("-password");
+
+        // Create notification for unbanned user
+        const notification = await Notification.create({
+            recipient: id,
+            sender: req.user._id,
+            type: 'unbanned',
+            read: false
+        });
+
+        // Populate and emit notification via socket
+        const populatedNotification = await Notification.findById(notification._id)
+            .populate('sender', 'username avatar email');
+
+        const io = getIO();
+        io.to(`user:${id}`).emit('new-notification', populatedNotification);
+        io.to(`user:${id}`).emit('unread-count-update');
 
         res.json({
             success: true,

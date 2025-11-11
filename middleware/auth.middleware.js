@@ -33,7 +33,7 @@ const authMiddleware = async (req, res, next) => {
             if (!isAllowedRoute) {
                 return res.status(403).json({
                     success: false,
-                    message: "Your account has been banned. You can only view content."
+                    message: "Your account has been restricted. You can only view content."
                 });
             }
         }

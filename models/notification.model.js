@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
 	},
 	type: {
 		type: String,
-		enum: ['like', 'comment', 'follow_request', 'follow_accept', 'follow_reject'],
+		enum: ['like', 'comment', 'reply', 'follow_request', 'follow_accept', 'follow_reject', 'banned', 'unbanned', 'role_updated'],
 		required: true
 	},
 	post: {
@@ -28,6 +28,10 @@ const notificationSchema = new mongoose.Schema({
 	followRequest: {
 		type: mongoose.Schema.Types.ObjectId,
 		ref: 'Follow'
+	},
+	metadata: {
+		type: mongoose.Schema.Types.Mixed,
+		default: {}
 	},
 	read: {
 		type: Boolean,
